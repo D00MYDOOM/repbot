@@ -1,0 +1,25 @@
+{
+  "name": "reputron",
+  "version": "1.0.0",
+  "description": "A bot designed to give users reputation from other users based on good or bad behaviour.",
+  "main": "reputron.js",
+  "scripts": {
+    "test": "pm2 start reputron.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YorkAARGH/Reputron.git"
+  },
+  "author": "YorkAARGH",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/YorkAARGH/Reputron/issues"
+  },
+  "homepage": "https://github.com/YorkAARGH/Reputron#readme",
+  "dependencies": {
+    "discord.js": "^9.2.0",
+    "moment": "^2.15.0",
+    "sqlite": "^2.2.0",
+    "winston": "^2.2.0"
+  }
+}

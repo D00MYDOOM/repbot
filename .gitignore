@@ -1,0 +1,16 @@
+# Directories
+/node_modules/
+/logs/
+/sprites/
+
+# File Extensions
+*.log
+*.png
+*.jpg
+*.sqlite_backup
+*.json_backup
+*.eslintrc.json
+
+# Specific Files
+settings.json
+ignorelist.json
