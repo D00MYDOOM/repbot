@@ -70,6 +70,19 @@ bot.on('message', msg => {
 
 	var lmsg = msg.content.toLowerCase();
 
+	// Return the file name of the rep file for either
+	// the message author or the mentioned user
+	function getUserRepFile()
+	{
+		let file = "";
+		if (!msg.mentions.users.array()[0]) {
+			file = `${msg.author.id}.json`;
+		} else {
+			file = `${msg.mentions.users.array()[0].id}.json`;
+		}
+		return file;
+	}
+
 	if (lmsg.startsWith('rep info')) {
 		let MemoryUsing = bytesToSize(process.memoryUsage().rss, 3);
 		let Uptime = GetUptime();
@@ -120,11 +133,13 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('??rep')) {
-		if (!msg.mentions.users.array()[0]) {
-			filename = `${msg.author.id}.json`;
-		} else {
-			filename = `${msg.mentions.users.array()[0].id}.json`;
-		}
+		// if (!msg.mentions.users.array()[0]) {
+		// 	filename = `${msg.author.id}.json`;
+		// } else {
+		// 	filename = `${msg.mentions.users.array()[0].id}.json`;
+		// }
+		var filename = getUserRepFile();
+		
 		fse.stat(`./reputations/${filename}`, (err) => {
 			if (err == null) {
 				var rep = require(`./reputations/${filename}`);
