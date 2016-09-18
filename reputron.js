@@ -83,6 +83,7 @@ bot.on('message', msg => {
 	}
 
 	if (lmsg.startsWith('rep info')) {
+		if (msg.author.id !== settings.owner) return;
 		let MemoryUsing = bytesToSize(process.memoryUsage().rss, 3);
 		let Uptime = GetUptime();
 		let djsv = pack.dependencies['discord.js'].split('^')[1];
@@ -116,7 +117,8 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('++rep')) {
-		if (!msg.mentions.users.array()[0]) {
+		if (msg.author.id !== settings.owner) return;
+		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
 			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
 			fse.stat(`./reputations/${filename}`, (err) => {
@@ -161,7 +163,8 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('--rep')) {
-		if (!msg.mentions.users.array()[0]) {
+		if (msg.author.id !== settings.owner) return;
+		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
 			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
 			fse.stat(`./reputations/${filename}`, (err) => {
@@ -205,6 +208,7 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('??rep')) {
+		if (msg.author.id !== settings.owner) return;
 		if (!msg.mentions.users.array()[0]) {
 			repuser = `${msg.author.id}`;
 		} else {
