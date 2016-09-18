@@ -62,19 +62,18 @@ bot.on('ready', () => {
 });
 
 bot.on('message', msg => {
-	var filename = '';
 	if (msg.author.equals(bot.user)) {
 		Stats.Messages.Sent++;
 	} else Stats.Messages.Received++;
 	var params = msg.content.toLowerCase().split(' ').slice(1);
-
+	var filename = getUserRepFile();
 	var lmsg = msg.content.toLowerCase();
+	var repuser = '';
 
 	// Return the file name of the rep file for either
 	// the message author or the mentioned user
-	function getUserRepFile()
-	{
-		let file = "";
+	function getUserRepFile() {
+		let file = '';
 		if (!msg.mentions.users.array()[0]) {
 			file = `${msg.author.id}.json`;
 		} else {
@@ -120,35 +119,106 @@ bot.on('message', msg => {
 		if (!msg.mentions.users.array()[0]) {
 			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
-			if (!msg.mentions.users.array()[0]) {
-				filename = `${msg.author.id}.json`;
-			} else {
-				filename = `${msg.mentions.users.array()[0].id}.json`;
-			}
+			fse.stat(`./reputations/${filename}`, (err) => {
+				if (err == null) {
+					var rep = require(`./reputations/${filename}`);
+					let reason = params.slice(1).join(' ');
+					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						rep.goodrep++;
+						rep.reps.push({
+							id: `${msg.author.id}`,
+							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							reason: `${reason}`,
+							type: '+',
+							time: `${Date.parse(msg.timestamp)}`
+						});
+						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author$.discriminator} gave 1 rep to ${user.username}#${user.discriminator}`);
+						//.then(response => response.delete(5000)).catch(console.log);
+					});
+				} else if (err.code == 'ENOENT') {
+					fse.createReadStream('./reputations/reputation_template.json').pipe(fse.createWriteStream(`./reputations/${filename}`));
+					var rep = require(`./reputations/${filename}`);
+					console.log(rep);
+					rep.goodrep++;
+					console.log(rep);
+					rep.reps.push({
+						id: `${msg.author.id}`,
+						raw: `${msg.author.username}#${msg.author.discriminator}`,
+						reason: `${params[1]}`,
+						type: '+',
+						time: `${Date.parse(msg.timestamp)}`
+					});
+					console.log(rep);
+					msg.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
+				} else {
+					console.log('Some other error: ', err.code);
+				}
+			});
 		}
 	} else
 
 	if (lmsg.startsWith('--rep')) {
-		msg.channel.sendMessage('You need to mention someone to rep them.').then(response => response.delete(5000)).catch(console.log);
+		if (!msg.mentions.users.array()[0]) {
+			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
+		} else {
+			fse.stat(`./reputations/${filename}`, (err) => {
+				if (err == null) {
+					var rep = require(`./reputations/${filename}`);
+					let reason = params.slice(1).join(' ');
+					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						rep.badrep++;
+						rep.reps.push({
+							id: `${msg.author.id}`,
+							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							reason: `${reason}`,
+							type: '-',
+							time: `${Date.parse(msg.timestamp)}`
+						});
+						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author$.discriminator} gave 1 rep to test#test`);
+						//.then(response => response.delete(5000)).catch(console.log);
+					});
+				} else if (err.code == 'ENOENT') {
+					var rep = require('./reputations/reputation_template.json');
+					console.log(rep);
+					rep.badrep++;
+					console.log(rep);
+					rep.reps.push({
+						id: `${msg.author.id}`,
+						raw: `${msg.author.username}#${msg.author.discriminator}`,
+						reason: `${params[1]}`,
+						type: '+',
+						time: `${Date.parse(msg.timestamp)}`
+					});
+					fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+					msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave 1 rep to test#test`);
+					//.then(response => response.delete(5000)).catch(console.log);
+					console.log(rep);
+					msg.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
+				} else {
+					console.log('Some other error: ', err.code);
+				}
+			});
+		}
 	} else
 
 	if (lmsg.startsWith('??rep')) {
-		// if (!msg.mentions.users.array()[0]) {
-		// 	filename = `${msg.author.id}.json`;
-		// } else {
-		// 	filename = `${msg.mentions.users.array()[0].id}.json`;
-		// }
-		var filename = getUserRepFile();
-		
+		if (!msg.mentions.users.array()[0]) {
+			repuser = `${msg.author.id}`;
+		} else {
+			repuser = `${msg.mentions.users.array()[0].id}`;
+		}
+
 		fse.stat(`./reputations/${filename}`, (err) => {
 			if (err == null) {
 				var rep = require(`./reputations/${filename}`);
-				bot.fetchUser(msg.author.id).then(user => {
+				bot.fetchUser(repuser).then(user => {
 					let output = `${user.username}#${user.discriminator} has (+${rep.goodrep}|-${rep.badrep}) reputation\n`;
 					rep.reps.forEach((item) => {
 						output += `(${item.type}) ${item.raw}: ${item.reason}\n`;
 					});
-					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`').then(response => response.delete(5000)).catch(console.log);
+					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`'); //.then(response => response.delete(5000)).catch(console.log);
 				});
 			} else if (err.code == 'ENOENT') {
 				msg.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
