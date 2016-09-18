@@ -1,6 +1,6 @@
 {
   "name": "reputron",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "A bot designed to give users reputation from other users based on good or bad behaviour.",
   "main": "reputron.js",
   "scripts": {
