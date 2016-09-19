@@ -1,6 +1,6 @@
 {
   "name": "reputron",
-  "version": "1.5.0",
+  "version": "2.3.0",
   "description": "A bot designed to give users reputation from other users based on good or bad behaviour.",
   "main": "reputron.js",
   "scripts": {
@@ -19,7 +19,6 @@
   "dependencies": {
     "discord.js": "^9.2.0",
     "fs-extra": "^0.30.0",
-    "moment": "^2.15.0",
     "winston": "^2.2.0"
   }
 }

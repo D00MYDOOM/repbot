@@ -5,9 +5,9 @@ const Discord = require('discord.js'),
 
 const settings = require('./settings.json'); // Grab all the settings.
 const pack = require('./package.json');
-//const moment = require('moment');
 const winston = require('winston');
 const fse = require('fs-extra');
+const Time = require('./Time.js');
 const Stats = {
 	Messages: {
 		Received: 0,
@@ -62,15 +62,27 @@ bot.on('ready', () => {
 });
 
 bot.on('message', msg => {
-	var filename = '';
 	if (msg.author.equals(bot.user)) {
 		Stats.Messages.Sent++;
 	} else Stats.Messages.Received++;
 	var params = msg.content.toLowerCase().split(' ').slice(1);
-
+	var filename = '';
 	var lmsg = msg.content.toLowerCase();
+	var repuser = '';
+
+	function getUserRepFile() {
+		let file = '';
+		if (!msg.mentions.users.array()[0]) {
+			file = `${msg.author.id}.json`;
+		} else {
+			file = `${msg.mentions.users.array()[0].id}.json`;
+		}
+		console.log(file);
+		return file;
+	}
 
 	if (lmsg.startsWith('rep info')) {
+		if (msg.author.id !== settings.owner) return;
 		let MemoryUsing = bytesToSize(process.memoryUsage().rss, 3);
 		let Uptime = GetUptime();
 		let djsv = pack.dependencies['discord.js'].split('^')[1];
@@ -104,36 +116,157 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('++rep')) {
-		if (!msg.mentions.users.array()[0]) {
+		if (msg.author.id !== settings.owner) return;
+		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
 			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
-			if (!msg.mentions.users.array()[0]) {
-				filename = `${msg.author.id}.json`;
-			} else {
-				filename = `${msg.mentions.users.array()[0].id}.json`;
-			}
+			filename = getUserRepFile();
+			fse.stat(`./reputations/${filename}`, (err) => {
+				if (err == null) {
+					let rep = require(`./reputations/${filename}`);
+					let reason = params.slice(1).join(' ');
+					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						let repped = false;
+						let reppedTime = 0;
+						rep.reps.forEach((key) => {
+							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+								repped = true;
+								reppedTime = key.time;
+								return;
+							}
+						});
+
+						if (repped) {
+							msg.channel.sendMessage(
+									`You have already given rep to that user today.\n` +
+									`You may give that user rep again in:\n\n` +
+									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+								.then(message => {
+									message.delete(5 * 1000);
+								});
+							return;
+						}
+						rep.goodrep++;
+						rep.reps.push({
+							id: `${msg.author.id}`,
+							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							reason: `${reason}`,
+							type: '+',
+							time: `${Date.parse(msg.timestamp)}`
+						});
+						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
+					});
+				} else if (err.code == 'ENOENT') {
+					let reason = params.slice(1).join(' ');
+					let rep = require('./reputations/reputation_template.json');
+					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						rep.goodrep++;
+						rep.reps.push({
+							id: `${msg.author.id}`,
+							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							reason: `${reason}`,
+							type: '+',
+							time: `${Date.parse(msg.timestamp)}`
+						});
+						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
+					});
+
+				} else {
+					console.log('Some other error: ', err.code);
+				}
+			});
 		}
 	} else
 
 	if (lmsg.startsWith('--rep')) {
-		msg.channel.sendMessage('You need to mention someone to rep them.').then(response => response.delete(5000)).catch(console.log);
+		if (msg.author.id !== settings.owner) return;
+		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
+			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
+		} else {
+			filename = getUserRepFile();
+			fse.stat(`./reputations/${filename}`, (err) => {
+				if (err == null) {
+					let rep = require(`./reputations/${filename}`);
+					let reason = params.slice(1).join(' ');
+					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						let repped = false;
+						let reppedTime = 0;
+						rep.reps.forEach((key) => {
+							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+								repped = true;
+								console.log('3');
+								reppedTime = key.time;
+								return;
+							}
+						});
+
+						if (repped) {
+							msg.channel.sendMessage(
+									`You have already given rep to that user today.\n` +
+									`You may give that user rep again in:\n\n` +
+									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+								.then(message => {
+									message.delete(5 * 1000);
+								});
+							return;
+						}
+						rep.badrep++;
+						rep.reps.push({
+							id: `${msg.author.id}`,
+							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							reason: `${reason}`,
+							type: '-',
+							time: `${Date.parse(msg.timestamp)}`
+						});
+						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
+					});
+				} else if (err.code == 'ENOENT') {
+					let reason = params.slice(1).join(' ');
+					let rep = require('./reputations/reputation_template.json');
+					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						rep.badrep++;
+						rep.reps.push({
+							id: `${msg.author.id}`,
+							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							reason: `${reason}`,
+							type: '-',
+							time: `${Date.parse(msg.timestamp)}`
+						});
+						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
+					});
+				} else {
+					console.log('Some other error: ', err.code);
+				}
+			});
+		}
 	} else
 
 	if (lmsg.startsWith('??rep')) {
+		if (msg.author.id !== settings.owner) return;
 		if (!msg.mentions.users.array()[0]) {
-			filename = `${msg.author.id}.json`;
+			repuser = `${msg.author.id}`;
 		} else {
-			filename = `${msg.mentions.users.array()[0].id}.json`;
+			repuser = `${msg.mentions.users.array()[0].id}`;
 		}
+
 		fse.stat(`./reputations/${filename}`, (err) => {
 			if (err == null) {
-				var rep = require(`./reputations/${filename}`);
-				bot.fetchUser(msg.author.id).then(user => {
+				let rep = require(`./reputations/${filename}`);
+				bot.fetchUser(repuser).then(user => {
 					let output = `${user.username}#${user.discriminator} has (+${rep.goodrep}|-${rep.badrep}) reputation\n`;
 					rep.reps.forEach((item) => {
 						output += `(${item.type}) ${item.raw}: ${item.reason}\n`;
 					});
-					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`').then(response => response.delete(5000)).catch(console.log);
+					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`')
+						.then(response => response.delete(5000)).catch(console.log);
 				});
 			} else if (err.code == 'ENOENT') {
 				msg.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
