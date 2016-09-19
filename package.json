@@ -19,7 +19,6 @@
   "dependencies": {
     "discord.js": "^9.2.0",
     "fs-extra": "^0.30.0",
-    "moment": "^2.15.0",
     "winston": "^2.2.0"
   }
 }
