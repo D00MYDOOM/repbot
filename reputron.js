@@ -67,7 +67,7 @@ bot.on('message', msg => {
 		Stats.Messages.Sent++;
 	} else Stats.Messages.Received++;
 	var params = msg.content.toLowerCase().split(' ').slice(1);
-	var filename = getUserRepFile();
+	var filename = "";
 	var lmsg = msg.content.toLowerCase();
 	var repuser = '';
 
@@ -120,6 +120,7 @@ bot.on('message', msg => {
 		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
 			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
+			filename = getUserRepFile();
 			fse.stat(`./reputations/${filename}`, (err) => {
 				if (err == null) {
 					let rep = require(`./reputations/${filename}`);
@@ -213,6 +214,7 @@ bot.on('message', msg => {
 		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
 			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
+			filename = getUserRepFile();
 			fse.stat(`./reputations/${filename}`, (err) => {
 				if (err == null) {
 					let rep = require(`./reputations/${filename}`);
