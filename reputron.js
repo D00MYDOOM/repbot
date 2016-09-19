@@ -1,13 +1,17 @@
 const Discord = require('discord.js'),
-	bot = new Discord.Client({
+	client = new Discord.Client({
 		fetch_all_members: true
 	});
 
 const settings = require('./settings.json'); // Grab all the settings.
 const pack = require('./package.json');
-const winston = require('winston');
 const fse = require('fs-extra');
-const Time = require('./Time.js');
+const Time = require('./time.js');
+const winston = require('winston');
+winston.add(winston.transports.File, {
+	filename: 'logs/reputron.log'
+});
+winston.remove(winston.transports.Console);
 const Stats = {
 	Messages: {
 		Received: 0,
@@ -42,56 +46,53 @@ function bytesToSize(input, precision) {
 	return (input / Math.pow(1024, index)).toFixed(precision) + ' ' + unit[index] + 'B';
 }
 
-// var log = (msg) => {
-// 	bot.channels.get(settings.channelid).sendMessage(msg);
-// };
+var log = (message) => {
+	client.channels.get(settings.channelid).sendMessage(message);
+};
 
 var date = new Date().toLocaleDateString();
 var time = new Date().toLocaleTimeString();
-bot.on('ready', () => {
-	// let bootup = [
-	// 	'```xl',
-	// 	'BOOT TIME STATISTICS',
-	// 	`• Booted   : ${date} @ ${time}`,
-	// 	`• Users	: ${bot.users.size}`,
-	// 	`• Servers  : ${bot.guilds.size}`,
-	// 	`• Channels : ${bot.channels.size}`,
-	// 	'```'
-	// ];
-	// log(bootup);
+client.on('ready', () => {
+	let bootup = [
+		'```xl',
+		'BOOT TIME STATISTICS',
+		`• Booted   : ${date} @ ${time}`,
+		`• Users	: ${client.users.size}`,
+		`• Servers  : ${client.guilds.size}`,
+		`• Channels : ${client.channels.size}`,
+		'```'
+	];
+	log(bootup);
 });
 
-bot.on('message', msg => {
-	if (msg.author.equals(bot.user)) {
+client.on('message', message => {
+	if (message.author.equals(client.user)) {
 		Stats.Messages.Sent++;
 	} else Stats.Messages.Received++;
-	var params = msg.content.toLowerCase().split(' ').slice(1);
+	var params = message.content.toLowerCase().split(' ').slice(1);
 	var filename = '';
-	var lmsg = msg.content.toLowerCase();
+	var lmsg = message.content.toLowerCase();
 	var repuser = '';
 
 	function getUserRepFile() {
 		let file = '';
-		if (!msg.mentions.users.array()[0]) {
-			file = `${msg.author.id}.json`;
+		if (!message.mentions.users.array()[0]) {
+			file = `${message.author.id}.json`;
 		} else {
-			file = `${msg.mentions.users.array()[0].id}.json`;
+			file = `${message.mentions.users.array()[0].id}.json`;
 		}
-		console.log(file);
 		return file;
 	}
 
-	if (lmsg.startsWith('rep info')) {
-		if (msg.author.id !== settings.owner) return;
+	if (lmsg === ('rep info')) {
 		let MemoryUsing = bytesToSize(process.memoryUsage().rss, 3);
 		let Uptime = GetUptime();
 		let djsv = pack.dependencies['discord.js'].split('^')[1];
 		let wins = pack.dependencies['winston'].split('^')[1];
-		let mome = pack.dependencies['moment'].split('^')[1];
 		let fsex = pack.dependencies['fs-extra'].split('^')[1];
 		let botv = pack.version;
 		let auth = pack.author;
-		let message = [
+		let infomsg = [
 			'```xl',
 			'STATISTICS',
 			`• Uptime	   : ${Uptime}`,
@@ -101,35 +102,53 @@ bot.on('message', msg => {
 			`• Msgs Rece	: ${Stats.Messages.Received}`,
 			'',
 			'SERVING',
-			`• Users		: ${bot.users.size}`,
-			`• Servers	  : ${bot.guilds.size}`,
-			`• Channels	 : ${bot.channels.size}`,
+			`• Users		: ${client.users.size}`,
+			`• Servers	  : ${client.guilds.size}`,
+			`• Channels	 : ${client.channels.size}`,
 			'',
 			'BOT INFORMATION',
 			`• Authors	  : ${auth}`,
 			`• Discord.JS   : ${djsv}`,
 			`• Bot Version  : ${botv}`,
-			`• Dependencies : Winston ${wins}, Moment ${mome}, fs-extra ${fsex}`,
+			`• Dependencies : Winston ${wins}, fs-extra ${fsex}`,
 			'```'
 		];
-		msg.channel.sendMessage(message).then(response => response.delete(5000)).catch(console.log);
+		message.channel.sendMessage(infomsg).then(response => response.delete(15000)).catch(console.log);
 	} else
 
+	if (lmsg === ('rep help')) {
+		var infohelp = [
+			'\`\`\`xl',
+			'Available commands:',
+			'++rep      : Usage: ++rep <mention>, Give a user +1 rep',
+			'--rep      : Usage: --rep <mention>, Give a user -1 rep',
+			'             You can apply an optional message to the above commands.',
+			'??rep      : Usage: ??rep <mention>, Check rep for the provided user, or yourself.',
+			'rep help   : Provides this list of commands.',
+			'rep info   : Provides bot statistics.',
+			'',
+			'Staff only commands',
+			'rep reboot : Logs out and terminates the process, use with PM2',
+			'More soon',
+			'\`\`\`'
+		];
+		message.channel.sendMessage(infohelp).then(response => response.delete(15000)).catch(console.log);
+	}
+
 	if (lmsg.startsWith('++rep')) {
-		if (msg.author.id !== settings.owner) return;
-		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
-			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
+		if (!message.mentions.users.array()[0] || message.author === message.mentions.users.array()[0]) {
+			message.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
 			filename = getUserRepFile();
 			fse.stat(`./reputations/${filename}`, (err) => {
 				if (err == null) {
 					let rep = require(`./reputations/${filename}`);
 					let reason = params.slice(1).join(' ');
-					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+					client.fetchUser(message.mentions.users.array()[0].id).then(user => {
 						let repped = false;
 						let reppedTime = 0;
 						rep.reps.forEach((key) => {
-							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+							if (key.id == message.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
 								repped = true;
 								reppedTime = key.time;
 								return;
@@ -137,7 +156,7 @@ bot.on('message', msg => {
 						});
 
 						if (repped) {
-							msg.channel.sendMessage(
+							message.channel.sendMessage(
 									`You have already given rep to that user today.\n` +
 									`You may give that user rep again in:\n\n` +
 									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
@@ -148,30 +167,30 @@ bot.on('message', msg => {
 						}
 						rep.goodrep++;
 						rep.reps.push({
-							id: `${msg.author.id}`,
-							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							id: `${message.author.id}`,
+							raw: `${message.author.username}#${message.author.discriminator}`,
 							reason: `${reason}`,
 							type: '+',
-							time: `${Date.parse(msg.timestamp)}`
+							time: `${Date.parse(message.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
+						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
 							.then(response => response.delete(5000)).catch(console.log);
 					});
 				} else if (err.code == 'ENOENT') {
 					let reason = params.slice(1).join(' ');
 					let rep = require('./reputations/reputation_template.json');
-					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+					client.fetchUser(message.mentions.users.array()[0].id).then(user => {
 						rep.goodrep++;
 						rep.reps.push({
-							id: `${msg.author.id}`,
-							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							id: `${message.author.id}`,
+							raw: `${message.author.username}#${message.author.discriminator}`,
 							reason: `${reason}`,
 							type: '+',
-							time: `${Date.parse(msg.timestamp)}`
+							time: `${Date.parse(message.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
+						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
 							.then(response => response.delete(5000)).catch(console.log);
 					});
 
@@ -183,20 +202,19 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('--rep')) {
-		if (msg.author.id !== settings.owner) return;
-		if (!msg.mentions.users.array()[0] || msg.author === msg.mentions.users.array()[0]) {
-			msg.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
+		if (!message.mentions.users.array()[0] || message.author === message.mentions.users.array()[0]) {
+			message.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
 		} else {
 			filename = getUserRepFile();
 			fse.stat(`./reputations/${filename}`, (err) => {
 				if (err == null) {
 					let rep = require(`./reputations/${filename}`);
 					let reason = params.slice(1).join(' ');
-					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+					client.fetchUser(message.mentions.users.array()[0].id).then(user => {
 						let repped = false;
 						let reppedTime = 0;
 						rep.reps.forEach((key) => {
-							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+							if (key.id == message.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
 								repped = true;
 								console.log('3');
 								reppedTime = key.time;
@@ -205,7 +223,7 @@ bot.on('message', msg => {
 						});
 
 						if (repped) {
-							msg.channel.sendMessage(
+							message.channel.sendMessage(
 									`You have already given rep to that user today.\n` +
 									`You may give that user rep again in:\n\n` +
 									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
@@ -216,30 +234,30 @@ bot.on('message', msg => {
 						}
 						rep.badrep++;
 						rep.reps.push({
-							id: `${msg.author.id}`,
-							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							id: `${message.author.id}`,
+							raw: `${message.author.username}#${message.author.discriminator}`,
 							reason: `${reason}`,
 							type: '-',
-							time: `${Date.parse(msg.timestamp)}`
+							time: `${Date.parse(message.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
+						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
 							.then(response => response.delete(5000)).catch(console.log);
 					});
 				} else if (err.code == 'ENOENT') {
 					let reason = params.slice(1).join(' ');
 					let rep = require('./reputations/reputation_template.json');
-					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+					client.fetchUser(message.mentions.users.array()[0].id).then(user => {
 						rep.badrep++;
 						rep.reps.push({
-							id: `${msg.author.id}`,
-							raw: `${msg.author.username}#${msg.author.discriminator}`,
+							id: `${message.author.id}`,
+							raw: `${message.author.username}#${message.author.discriminator}`,
 							reason: `${reason}`,
 							type: '-',
-							time: `${Date.parse(msg.timestamp)}`
+							time: `${Date.parse(message.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
+						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
 							.then(response => response.delete(5000)).catch(console.log);
 					});
 				} else {
@@ -250,48 +268,47 @@ bot.on('message', msg => {
 	} else
 
 	if (lmsg.startsWith('??rep')) {
-		if (msg.author.id !== settings.owner) return;
-		if (!msg.mentions.users.array()[0]) {
-			repuser = `${msg.author.id}`;
+		if (!message.mentions.users.array()[0]) {
+			repuser = `${message.author.id}`;
 		} else {
-			repuser = `${msg.mentions.users.array()[0].id}`;
+			repuser = `${message.mentions.users.array()[0].id}`;
 		}
 
 		fse.stat(`./reputations/${filename}`, (err) => {
 			if (err == null) {
 				let rep = require(`./reputations/${filename}`);
-				bot.fetchUser(repuser).then(user => {
+				client.fetchUser(repuser).then(user => {
 					let output = `${user.username}#${user.discriminator} has (+${rep.goodrep}|-${rep.badrep}) reputation\n`;
 					rep.reps.forEach((item) => {
 						output += `(${item.type}) ${item.raw}: ${item.reason}\n`;
 					});
-					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`')
+					message.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`')
 						.then(response => response.delete(5000)).catch(console.log);
 				});
 			} else if (err.code == 'ENOENT') {
-				msg.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
+				message.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
 			} else {
 				console.log('Some other error: ', err.code);
 			}
 		});
 	} else
 
-	if (lmsg.startsWith('rep reboot')) {
-		if (msg.author.id !== settings.owner) return;
-		const collector = msg.channel.createCollector(m => m.author === msg.author, {
+	if (lmsg === ('reboot reputron')) {
+		if (!message.member.hasPermission('ADMINISTRATOR') || !message.member.hasPermission('MANAGE_GUILD')) return;
+		const collector = message.channel.createCollector(m => m.author === message.author, {
 			time: 5000
 		});
-		msg.channel.sendMessage('Are you sure?').then(response => response.delete(10500)).catch(console.log);
+		message.channel.sendMessage('Are you sure?').then(response => response.delete(10500)).catch(console.log);
 		collector.on('message', m => {
 			if (m.content === 'yes' || m.content === 'y') collector.stop('success');
 			if (m.content !== 'yes' || m.content !== 'y') collector.stop('failed');
 		});
 		collector.on('end', (collection, reason) => {
-			if (reason === 'time') return msg.channel.sendMessage('Reboot timed out.').then(response => response.delete(5000)).catch(console.log);
-			if (reason === 'failed') return msg.channel.sendMessage('Reboot aborted.').then(response => response.delete(5000)).catch(console.log);
+			if (reason === 'time') return message.channel.sendMessage('Reboot timed out.').then(response => response.delete(5000)).catch(console.log);
+			if (reason === 'failed') return message.channel.sendMessage('Reboot aborted.').then(response => response.delete(5000)).catch(console.log);
 			if (reason === 'success') {
-				msg.channel.sendMessage('Rebooting...').then(() => {
-					bot.destroy().then(() => {
+				message.channel.sendMessage('Rebooting...').then(() => {
+					client.destroy().then(() => {
 						process.exit();
 					}).catch(console.log);
 				});
@@ -299,9 +316,56 @@ bot.on('message', msg => {
 		});
 	} else
 
-	if (lmsg.startsWith('rep leave')) {
-		var gid = params.slice(1);
-		msg.channel.sendMessage(gid);
+	if (lmsg.startsWith('leave reputron')) {
+		if (message.author.id !== settings.owner) return;
+		const collector = message.channel.createCollector(m => m.author === message.author, {
+			time: 5000
+		});
+		var gid = params.slice(1).toString();
+		if (gid && !isNaN(gid)) {
+			message.channel.sendMessage(`Are you sure you want to leave ${client.guilds.get(gid).name}?`).then(response => response.delete(10500)).catch(console.log);
+			collector.on('message', m => {
+				if (m.content === 'yes' || m.content === 'y') collector.stop('success');
+				if (m.content !== 'yes' || m.content !== 'y') collector.stop('failed');
+			});
+			collector.on('end', (collection, reason) => {
+				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000)).catch(console.log);
+				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000)).catch(console.log);
+				if (reason === 'success') {
+					message.channel.sendMessage(`Leaving ${client.guilds.get(gid).name}`).then(() => {
+						client.guilds.get(gid).leave();
+					}).then(response => response.delete(5000)).catch(console.log);
+				}
+
+			});
+
+		} else
+
+		if (!gid) {
+			message.channel.sendMessage(`Are you sure you want to leave ${message.guild.name}?`).then(response => response.delete(10500)).catch(console.log);
+			collector.on('message', m => {
+				if (m.content === 'yes' || m.content === 'y') collector.stop('success');
+				if (m.content !== 'yes' || m.content !== 'y') collector.stop('failed');
+			});
+			collector.on('end', (collection, reason) => {
+				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000)).catch(console.log);
+				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000)).catch(console.log);
+				if (reason === 'success') {
+					message.channel.sendMessage(`Leaving ${message.guild.name}`).then(() => {
+						message.guild.leave();
+					}).then(response => response.delete(5000)).catch(console.log);
+				}
+
+			});
+
+		}
+	} else
+
+	if (lmsg === ('invite reputron')) {
+		let output = `So, you want to invite me to your server do you?
+Well here's my link! knock yourself out!
+https://discordapp.com/oauth2/authorize?client_id=${client.user.id}&scope=bot`;
+		message.channel.sendMessage(output).then(response => response.delete(15000)).catch(console.log);
 	}
 
 
@@ -309,14 +373,14 @@ bot.on('message', msg => {
 
 // Catch discord.js errors
 var tokenreg = /[\w\d]{24}\.[\w\d]{6}\.[\w\d-_]{27}/g;
-bot.on('error', e => {
+client.on('error', e => {
 	winston.error(e.replace(tokenreg, '[REDACTED]'));
 });
-bot.on('warn', e => {
+client.on('warn', e => {
 	winston.warn(e.replace(tokenreg, '[REDACTED]'));
 });
-bot.on('debug', e => {
+client.on('debug', e => {
 	winston.info(e.replace(tokenreg, '[REDACTED]'));
 });
 
-bot.login(settings.token);
+client.login(settings.token);
