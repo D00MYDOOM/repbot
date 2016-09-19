@@ -8,6 +8,7 @@ const pack = require('./package.json');
 //const moment = require('moment');
 const winston = require('winston');
 const fse = require('fs-extra');
+const Time = require('./Time.js');
 const Stats = {
 	Messages: {
 		Received: 0,
@@ -70,8 +71,6 @@ bot.on('message', msg => {
 	var lmsg = msg.content.toLowerCase();
 	var repuser = '';
 
-	// Return the file name of the rep file for either
-	// the message author or the mentioned user
 	function getUserRepFile() {
 		let file = '';
 		if (!msg.mentions.users.array()[0]) {
@@ -126,6 +125,32 @@ bot.on('message', msg => {
 					let rep = require(`./reputations/${filename}`);
 					let reason = params.slice(1).join(' ');
 					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						let repped = false;
+						let reppedTime = 0;
+						rep.reps.forEach((key) => {
+							console.log('1');
+							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+								console.log('2');
+								repped = true;
+								console.log('3');
+								reppedTime = key.time;
+								console.log('4');
+								return;
+							}
+						});
+
+						if (repped) {
+							console.log('5');
+							msg.channel.sendMessage(
+									`You have already given rep to that user today.\n` +
+									`You may give that user rep again in:\n\n` +
+									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+								.then(message => {
+									console.log('6');
+									message.delete(5 * 1000);
+								});
+							return;
+						}
 						rep.goodrep++;
 						rep.reps.push({
 							id: `${msg.author.id}`,
@@ -135,13 +160,34 @@ bot.on('message', msg => {
 							time: `${Date.parse(msg.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave 1 rep to ${user.username}#${user.discriminator}`);
-						//.then(response => response.delete(5000)).catch(console.log);
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
 					});
 				} else if (err.code == 'ENOENT') {
 					let reason = params.slice(1).join(' ');
 					let rep = require('./reputations/reputation_template.json');
 					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						let repped = false;
+						let reppedTime = 0;
+						rep.reps.forEach((key) => {
+							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+								repped = true;
+								reppedTime = key.time;
+								return;
+							}
+						});
+
+						if (repped) {
+							msg.channel.sendMessage(
+									`You have already given rep to that user today.\n` +
+									`You may give that user rep again in:\n\n` +
+									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+								.then(message => {
+									message.delete(5 * 1000);
+								});
+							return;
+						}
+
 						rep.goodrep++;
 						rep.reps.push({
 							id: `${msg.author.id}`,
@@ -151,8 +197,8 @@ bot.on('message', msg => {
 							time: `${Date.parse(msg.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave 1 rep to ${user.username}#${user.discriminator}`);
-						//.then(response => response.delete(5000)).catch(console.log);
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave +1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
 					});
 
 				} else {
@@ -172,6 +218,32 @@ bot.on('message', msg => {
 					let rep = require(`./reputations/${filename}`);
 					let reason = params.slice(1).join(' ');
 					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						let repped = false;
+						let reppedTime = 0;
+						rep.reps.forEach((key) => {
+							console.log('1');
+							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+								console.log('2');
+								repped = true;
+								console.log('3');
+								reppedTime = key.time;
+								console.log('4');
+								return;
+							}
+						});
+
+						if (repped) {
+							console.log('5');
+							msg.channel.sendMessage(
+									`You have already given rep to that user today.\n` +
+									`You may give that user rep again in:\n\n` +
+									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+								.then(message => {
+									console.log('6');
+									message.delete(5 * 1000);
+								});
+							return;
+						}
 						rep.badrep++;
 						rep.reps.push({
 							id: `${msg.author.id}`,
@@ -181,13 +253,39 @@ bot.on('message', msg => {
 							time: `${Date.parse(msg.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave 1 rep to ${user.username}#${user.discriminator}`);
-						//.then(response => response.delete(5000)).catch(console.log);
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
 					});
 				} else if (err.code == 'ENOENT') {
 					let reason = params.slice(1).join(' ');
 					let rep = require('./reputations/reputation_template.json');
 					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
+						let repped = false;
+						let reppedTime = 0;
+						rep.reps.forEach((key) => {
+							console.log('1');
+							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+								console.log('2');
+								repped = true;
+								console.log('3');
+								reppedTime = key.time;
+								console.log('4');
+								return;
+							}
+						});
+
+						if (repped) {
+							console.log('5');
+							msg.channel.sendMessage(
+									`You have already given rep to that user today.\n` +
+									`You may give that user rep again in:\n\n` +
+									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+								.then(message => {
+									console.log('6');
+									message.delete(5 * 1000);
+								});
+							return;
+						}
 						rep.badrep++;
 						rep.reps.push({
 							id: `${msg.author.id}`,
@@ -197,8 +295,8 @@ bot.on('message', msg => {
 							time: `${Date.parse(msg.timestamp)}`
 						});
 						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave 1 rep to ${user.username}#${user.discriminator}`);
-						//.then(response => response.delete(5000)).catch(console.log);
+						msg.channel.sendMessage(`${msg.author.username}#${msg.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
+							.then(response => response.delete(5000)).catch(console.log);
 					});
 				} else {
 					console.log('Some other error: ', err.code);
@@ -223,7 +321,8 @@ bot.on('message', msg => {
 					rep.reps.forEach((item) => {
 						output += `(${item.type}) ${item.raw}: ${item.reason}\n`;
 					});
-					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`'); //.then(response => response.delete(5000)).catch(console.log);
+					msg.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`')
+						.then(response => response.delete(5000)).catch(console.log);
 				});
 			} else if (err.code == 'ENOENT') {
 				msg.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
