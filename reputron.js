@@ -78,6 +78,7 @@ bot.on('message', msg => {
 		} else {
 			file = `${msg.mentions.users.array()[0].id}.json`;
 		}
+		console.log(file);
 		return file;
 	}
 
