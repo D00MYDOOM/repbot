@@ -169,26 +169,28 @@ bot.on('message', msg => {
 					let reason = params.slice(1).join(' ');
 					let rep = require('./reputations/reputation_template.json');
 					bot.fetchUser(msg.mentions.users.array()[0].id).then(user => {
-						let repped = false;
-						let reppedTime = 0;
-						rep.reps.forEach((key) => {
-							if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
-								repped = true;
-								reppedTime = key.time;
-								return;
-							}
-						});
-
-						if (repped) {
-							msg.channel.sendMessage(
-									`You have already given rep to that user today.\n` +
-									`You may give that user rep again in:\n\n` +
-									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
-								.then(message => {
-									message.delete(5 * 1000);
-								});
-							return;
-						}
+						// let repped = false;
+						// let reppedTime = 0;
+						// rep.reps.forEach((key) => {
+						// 	console.log("1")
+						// 	if (key.id == msg.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
+						// 		console.log(`key:${key.id}, author: ${msg.author.id}`);
+						// 		repped = true;
+						// 		reppedTime = key.time;
+						// 		return;
+						// 	}
+						// });
+						//
+						// if (repped) {
+						// 	msg.channel.sendMessage(
+						// 			`You have already given rep to that user today.\n` +
+						// 			`You may give that user rep again in:\n\n` +
+						// 			`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
+						// 		.then(message => {
+						// 			message.delete(5 * 1000);
+						// 		});
+						// 	return;
+						// }
 
 						rep.goodrep++;
 						rep.reps.push({
