@@ -1,6 +1,6 @@
 {
   "name": "reputar",
-  "version": "2.3.0",
+  "version": "3.4.0",
   "description": "A bot designed to give users reputation from other users based on good or bad behaviour.",
   "main": "reputar.js",
   "scripts": {
@@ -10,15 +10,15 @@
     "type": "git",
     "url": "git+https://github.com/YorkAARGH/Reputar.git"
   },
-  "author": "York#9528, zajrik#2656",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/YorkAARGH/Reputar/issues"
   },
   "homepage": "https://github.com/YorkAARGH/Reputar#readme",
+  "author": "York#9528, zajrik#2656",
+  "license": "MIT",
   "dependencies": {
     "discord.js": "^9.2.0",
-    "fs-promise": "^0.5.0",
+    "sqlite": "^2.2.0",
     "winston": "^2.2.0"
   }
 }

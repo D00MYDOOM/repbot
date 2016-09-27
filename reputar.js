@@ -5,8 +5,8 @@ const Discord = require('discord.js'),
 
 const settings = require('./settings.json'); // Grab all the settings.
 const pack = require('./package.json');
-const fse = require('fs-promise');
-const Time = require('./time.js');
+const sql = require('sqlite');
+//const Time = require('./time.js');
 const winston = require('winston');
 winston.add(winston.transports.File, {
 	filename: 'logs/reputron.log'
@@ -54,15 +54,15 @@ var date = new Date().toLocaleDateString();
 var time = new Date().toLocaleTimeString();
 client.on('ready', () => {
 	let bootup = [
-		'```xl',
+		'\`\`\`',
 		'BOOT TIME STATISTICS',
 		`• Booted   : ${date} @ ${time}`,
 		`• Users	: ${client.users.size}`,
 		`• Servers  : ${client.guilds.size}`,
 		`• Channels : ${client.channels.size}`,
-		'```'
+		'\`\`\`'
 	];
-	log(bootup);
+	// log(bootup);
 });
 
 client.on('message', message => {
@@ -70,66 +70,29 @@ client.on('message', message => {
 		Stats.Messages.Sent++;
 	} else Stats.Messages.Received++;
 	var params = message.content.toLowerCase().split(' ').slice(1);
-	var filename = '';
+	// var filename = '';
 	var lmsg = message.content.toLowerCase();
-	var repuser = '';
 
-	function getUserRepFile() {
-		let file = '';
-		if (!message.mentions.users.array()[0]) {
-			file = `${message.author.id}.json`;
+	function addRep(awardee, guildid, awarder, type, reason) {
+		var goodrep = 0;
+		var badrep = 0;
+		var success = false;
+		if (type === '+') {
+			goodrep = 1;
 		} else {
-			file = `${message.mentions.users.array()[0].id}.json`;
+			badrep = 1;
 		}
-		return file;
-	}
+		sql.open('./reputation.sqlite').then(() =>
+			sql.run('INSERT INTO reputations (guildid, awardeeid, goodrep, badrep, awarder, rawuser, type, reason, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [guildid, awardee, goodrep, badrep, awarder, client.users.get(awarder).username+'#'+client.users.get(awarder).discriminator, type, reason, Date.now()])
+				.then(() =>{
+					return success = true;
+				}).catch(error => message.channel.sendMessage(error.stack)));
+		if (success) {
+			return `${client.users.get(awarder).username}#${client.users.get(awarder).discriminator} gave ${type}1 rep to ${client.users.get(awardee).username}#${client.users.get(awardee).discriminator}, ${reason}`;
+		} else {
+			return 'Bullshit';
+		}
 
-	function addRep(a, t, g, u, r) {
-		filename = getUserRepFile();
-		fse.mkdirs(`./reputations/${g}/`).then(() => {
-			fse.stat(`./reputations/${g}/${filename}`, (err) => {
-				if (err == null) {
-					let rep = require(`./reputations/${g}/${filename}`);
-					client.fetchUser(message.mentions.users.first().id).then(user => {
-						let repped = false;
-						let reppedTime = 0;
-						rep.reps.forEach((key) => {
-							if (key.id == message.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
-								repped = true;
-								reppedTime = key.time;
-								return;
-							}
-						});
-						if (repped) {
-							return message.channel.sendMessage(
-								`You have already given rep to that user today.\n` +
-								`You may give that user rep again in:\n\n` +
-								`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`).then(message => {
-									message.delete(5000);
-								});
-							//return;
-						}
-						rep.goodrep++;
-						rep.reps.push({
-							id: `${message.author.id}`,
-							raw: `${message.author.username}#${message.author.discriminator}`,
-							reason: `${r}`,
-							type: '+',
-							time: `${Date.parse(message.timestamp)}`
-						});
-						fse.writeFileSync(`./reputations/${g}/${filename}`, JSON.stringify(rep, null, '\t'));
-						var stringresult = `${a} gave ${t}1 rep to ${u}, ${r}`;
-						if (!r) {
-							stringresult = stringresult.split(',');
-							return stringresult[0];
-						} else {
-							return stringresult;
-						}
-
-					});
-				}
-			});
-		});
 	}
 
 	if (lmsg === ('rep info')) {
@@ -137,11 +100,11 @@ client.on('message', message => {
 		let Uptime = GetUptime();
 		let djsv = pack.dependencies['discord.js'].split('^')[1];
 		let wins = pack.dependencies['winston'].split('^')[1];
-		let fspr = pack.dependencies['fs-promise'].split('^')[1];
+		let sqli = pack.dependencies['sqlite'].split('^')[1];
 		let botv = pack.version;
 		let auth = pack.author;
 		let infomsg = [
-			'```xl',
+			'\`\`\`',
 			'STATISTICS',
 			`• Uptime	   : ${Uptime}`,
 			`• Booted	   : ${date} @ ${time}`,
@@ -158,15 +121,15 @@ client.on('message', message => {
 			`• Authors	  : ${auth}`,
 			`• Discord.JS   : ${djsv}`,
 			`• Bot Version  : ${botv}`,
-			`• Dependencies : Winston ${wins}, fs-promise ${fspr}`,
-			'```'
+			`• Dependencies : Winston ${wins}, SQLite ${sqli}`,
+			'\`\`\`'
 		];
 		message.channel.sendMessage(infomsg).then(response => response.delete(15000)).catch(console.log);
 	} else
 
 	if (lmsg === ('rep help')) {
 		var infohelp = [
-			'\`\`\`xl',
+			'\`\`\`',
 			'Available commands:',
 			'++rep	  : Usage: ++rep <mention>, Give a user +1 rep',
 			'--rep	  : Usage: --rep <mention>, Give a user -1 rep',
@@ -184,161 +147,65 @@ client.on('message', message => {
 	}
 
 	if (lmsg.startsWith('++rep')) {
-		if (!message.mentions.users || message.author === message.mentions.users.first()) {
-			message.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
+		if (!message.mentions.users.array()[0]) {
+			message.reply('you\'re a loser for trying to rep yourself');
 		} else {
-			filename = getUserRepFile();
-			fse.stat(`./reputations/${filename}`, (err) => {
-				if (err == null) {
-					let rep = require(`./reputations/${filename}`);
-					let reason = params.slice(1).join(' ');
-					client.fetchUser(message.mentions.users.first().id).then(user => {
-						let repped = false;
-						let reppedTime = 0;
-						rep.reps.forEach((key) => {
-							if (key.id == message.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
-								repped = true;
-								console.log('3');
-								reppedTime = key.time;
-								return;
-							}
-						});
-
-						if (repped) {
-							message.channel.sendMessage(
-									`You have already given rep to that user today.\n` +
-									`You may give that user rep again in:\n\n` +
-									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
-								.then(message => {
-									message.delete(5 * 1000);
-								});
-							return;
-						}
-						rep.badrep++;
-						rep.reps.push({
-							id: `${message.author.id}`,
-							raw: `${message.author.username}#${message.author.discriminator}`,
-							reason: `${reason}`,
-							type: '+',
-							time: `${Date.parse(message.timestamp)}`
-						});
-						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
-							.then(response => response.delete(5000)).catch(console.log);
-					});
-				} else if (err.code == 'ENOENT') {
-					let reason = params.slice(1).join(' ');
-					let rep = require('./reputations/reputation_template.json');
-					client.fetchUser(message.mentions.users.first().id).then(user => {
-						rep.badrep++;
-						rep.reps.push({
-							id: `${message.author.id}`,
-							raw: `${message.author.username}#${message.author.discriminator}`,
-							reason: `${reason}`,
-							type: '+',
-							time: `${Date.parse(message.timestamp)}`
-						});
-						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
-							.then(response => response.delete(5000)).catch(console.log);
-					});
-				} else {
-					console.log('Some other error: ', err.code);
-				}
-			});
+			let reason = message.content.split(' ').slice(2).join(' ');
+			if (!reason) return message.channel.sendMessage('You must supply a reason to give reputation');
+			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '+', reason));
 		}
 	} else
 
 	if (lmsg.startsWith('--rep')) {
-		if (!message.mentions.users.array()[0] || message.author === message.mentions.users.array()[0]) {
-			message.reply('What sad person reps themself?').then(response => response.delete(5000)).catch(console.log);
+		if (!message.mentions.users.array()[0]) {
+			message.reply('you\'re a loser for trying to rep yourself');
 		} else {
-			filename = getUserRepFile();
-			fse.stat(`./reputations/${filename}`, (err) => {
-				if (err == null) {
-					let rep = require(`./reputations/${filename}`);
-					let reason = params.slice(1).join(' ');
-					client.fetchUser(message.mentions.users.array()[0].id).then(user => {
-						let repped = false;
-						let reppedTime = 0;
-						rep.reps.forEach((key) => {
-							if (key.id == message.author.id && Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - key.time).ms > 0) {
-								repped = true;
-								console.log('3');
-								reppedTime = key.time;
-								return;
-							}
-						});
-
-						if (repped) {
-							message.channel.sendMessage(
-									`You have already given rep to that user today.\n` +
-									`You may give that user rep again in:\n\n` +
-									`**${Time.Difference(settings.cooldown * 1000 * 60 * 60, Time.now() - reppedTime).toString()}.**`)
-								.then(message => {
-									message.delete(5 * 1000);
-								});
-							return;
-						}
-						rep.badrep++;
-						rep.reps.push({
-							id: `${message.author.id}`,
-							raw: `${message.author.username}#${message.author.discriminator}`,
-							reason: `${reason}`,
-							type: '-',
-							time: `${Date.parse(message.timestamp)}`
-						});
-						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
-							.then(response => response.delete(5000)).catch(console.log);
-					});
-				} else if (err.code == 'ENOENT') {
-					let reason = params.slice(1).join(' ');
-					let rep = require('./reputations/reputation_template.json');
-					client.fetchUser(message.mentions.users.array()[0].id).then(user => {
-						rep.badrep++;
-						rep.reps.push({
-							id: `${message.author.id}`,
-							raw: `${message.author.username}#${message.author.discriminator}`,
-							reason: `${reason}`,
-							type: '-',
-							time: `${Date.parse(message.timestamp)}`
-						});
-						fse.writeFileSync(`./reputations/${filename}`, JSON.stringify(rep, null, '\t'));
-						message.channel.sendMessage(`${message.author.username}#${message.author.discriminator} gave -1 rep to ${user.username}#${user.discriminator}`)
-							.then(response => response.delete(5000)).catch(console.log);
-					});
-				} else {
-					console.log('Some other error: ', err.code);
-				}
-			});
+			let reason = message.content.split(' ').slice(2).join(' ');
+			if (!reason) return message.channel.sendMessage('You must supply a reason to give reputation');
+			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '-', reason));
 		}
 	} else
 
 	if (lmsg.startsWith('??rep')) {
-		if (!message.mentions.users.array()[0]) {
-			repuser = `${message.author.id}`;
-		} else {
-			repuser = `${message.mentions.users.array()[0].id}`;
-		}
-
-		fse.stat(`./reputations/${filename}`, (err) => {
-			if (err == null) {
-				let rep = require(`./reputations/${filename}`);
-				client.fetchUser(repuser).then(user => {
-					let output = `${user.username}#${user.discriminator} has (+${rep.goodrep}|-${rep.badrep}) reputation\n`;
-					rep.reps.forEach((item) => {
-						output += `(${item.type}) ${item.raw}: ${item.reason}\n`;
+		if (message.mentions.users.array()[0]) {
+			var mentioneduser = message.mentions.users.array()[0];
+			sql.open('./reputation.sqlite').then(() => sql.all('SELECT * FROM reputations WHERE awardeeid = ?', mentioneduser.id)).then(rows => {
+				if (rows.filter(user => user.awardeeid == mentioneduser.id)) {
+					let goodreps = rows.filter(rep => rep.guildid == message.guild.id).map(rep => rep.goodrep).reduce((prev, cur) => {
+						return prev + cur;
 					});
-					message.channel.sendMessage('\`\`\`css\n' + output + '\`\`\`')
-						.then(response => response.delete(5000)).catch(console.log);
-				});
-			} else if (err.code == 'ENOENT') {
-				message.channel.sendMessage('No reputation found').then(response => response.delete(5000)).catch(console.log);
-			} else {
-				console.log('Some other error: ', err.code);
-			}
-		});
+					let badreps = rows.filter(rep => rep.guildid == message.guild.id).map(rep => rep.badrep).reduce((prev, cur) => {
+						return prev + cur;
+					});
+
+					let result = [];
+					result.push('\`\`\`');
+					result.push(`${client.users.get(mentioneduser.id).username}#${client.users.get(mentioneduser.id).discriminator} has ( +${goodreps} / -${badreps} )`);
+					rows.filter(rep => rep.guildid == message.guild.id).map(rows => {
+						result.push(`(${rows.type}) ${rows.rawuser}: ${rows.reason}`);
+					});
+					result.push('\`\`\`');
+					message.channel.sendMessage(result);
+				} else {
+					message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}**.`).then(response => {
+						response.delete(5000).catch(error => log('False no contents: ' + error.stack));
+					});
+				}
+			}).catch(error => log(error.stack));
+		} else {
+			sql.open('./reputation.sqlite').then(() => sql.get('SELECT * FROM reputations WHERE awardeeid = ?', message.author.id)).then(row => {
+				if (!row) {
+					message.channel.sendMessage(`Could not find any reputation for **${message.author.username}**.`).then(response => {
+						response.delete(5000).catch(error => log('False no contents: ' + error.stack));
+					});
+				} else {
+					let message_content = row.rawuser;
+					console.log('Row Contents: ' + row.rawuser);
+					message.channel.sendMessage(message_content).catch(error => log('False row contents: ' + error.stack));
+				}
+			}).catch(error => log('False Condition: ' + error.stack));
+
+		}
 	} else
 
 	if (lmsg === ('rep reboot')) {
@@ -415,17 +282,6 @@ client.on('message', message => {
 	}
 
 
-});
-
-client.on('presenceUpdate', (oldUser, newUser) => {
-	if(newUser.id === settings.owner) {
-		// if (newUser.status === 'idle') {
-		log(newUser.status + ' <= New / Old => ' + oldUser.status);
-		// }
-	} else
-	if (newUser.game !== oldUser.game){
-		log('Game Changed');
-	}
 });
 
 // Catch discord.js errors
