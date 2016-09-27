@@ -76,7 +76,6 @@ client.on('message', message => {
 	function addRep(awardee, guildid, awarder, type, reason) {
 		var goodrep = 0;
 		var badrep = 0;
-		var success = false;
 		if (type === '+') {
 			goodrep = 1;
 		} else {
@@ -85,14 +84,8 @@ client.on('message', message => {
 		sql.open('./reputation.sqlite').then(() =>
 			sql.run('INSERT INTO reputations (guildid, awardeeid, goodrep, badrep, awarder, rawuser, type, reason, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [guildid, awardee, goodrep, badrep, awarder, client.users.get(awarder).username+'#'+client.users.get(awarder).discriminator, type, reason, Date.now()])
 				.then(() =>{
-					return success = true;
+					message.channel.sendMessage(`${client.users.get(awarder).username}#${client.users.get(awarder).discriminator} gave ${type}1 rep to ${client.users.get(awardee).username}#${client.users.get(awardee).discriminator} ${reason}`);
 				}).catch(error => message.channel.sendMessage(error.stack)));
-		if (success) {
-			return `${client.users.get(awarder).username}#${client.users.get(awarder).discriminator} gave ${type}1 rep to ${client.users.get(awardee).username}#${client.users.get(awardee).discriminator}, ${reason}`;
-		} else {
-			return 'Bullshit';
-		}
-
 	}
 
 	if (lmsg === ('rep info')) {
@@ -180,18 +173,18 @@ client.on('message', message => {
 
 					let result = [];
 					result.push('\`\`\`');
-					result.push(`${client.users.get(mentioneduser.id).username}#${client.users.get(mentioneduser.id).discriminator} has ( +${goodreps} / -${badreps} )`);
+					result.push(`${client.users.get(mentioneduser.id).username}#${client.users.get(mentioneduser.id).discriminator} has a total reputation score of ${goodreps - badreps}; ( +${goodreps} / -${badreps} )`);
 					rows.filter(rep => rep.guildid == message.guild.id).map(rows => {
 						result.push(`(${rows.type}) ${rows.rawuser}: ${rows.reason}`);
 					});
 					result.push('\`\`\`');
 					message.channel.sendMessage(result);
 				} else {
-					message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}**.`).then(response => {
+					message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**.`).then(response => {
 						response.delete(5000).catch(error => log('False no contents: ' + error.stack));
 					});
 				}
-			}).catch(error => log(error.stack));
+			}).catch(message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**`));
 		} else {
 			sql.open('./reputation.sqlite').then(() => sql.get('SELECT * FROM reputations WHERE awardeeid = ?', message.author.id)).then(row => {
 				if (!row) {
@@ -203,7 +196,7 @@ client.on('message', message => {
 					console.log('Row Contents: ' + row.rawuser);
 					message.channel.sendMessage(message_content).catch(error => log('False row contents: ' + error.stack));
 				}
-			}).catch(error => log('False Condition: ' + error.stack));
+			}).catch(error => message.channel.sendMessage(error.stack));
 
 		}
 	} else
