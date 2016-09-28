@@ -3,7 +3,7 @@ const Discord = require('discord.js'),
 		fetch_all_members: true
 	});
 
-const settings = require('./settings.json'); // Grab all the settings.
+const settings = require('./settings.json');
 const pack = require('./package.json');
 const sql = require('sqlite');
 //const Time = require('./time.js');
@@ -47,7 +47,7 @@ function bytesToSize(input, precision) {
 }
 
 var log = (message) => {
-	client.channels.get(settings.channelid).sendMessage(message);
+	client.channels.get('228865885660643328').sendMessage(message);
 };
 
 var date = new Date().toLocaleDateString();
@@ -62,7 +62,7 @@ client.on('ready', () => {
 		`• Channels : ${client.channels.size}`,
 		'\`\`\`'
 	];
-	// log(bootup);
+	log(bootup);
 });
 
 client.on('message', message => {
@@ -70,7 +70,6 @@ client.on('message', message => {
 		Stats.Messages.Sent++;
 	} else Stats.Messages.Received++;
 	var params = message.content.toLowerCase().split(' ').slice(1);
-	// var filename = '';
 	var lmsg = message.content.toLowerCase();
 
 	function addRep(awardee, guildid, awarder, type, reason) {
@@ -82,10 +81,15 @@ client.on('message', message => {
 			badrep = 1;
 		}
 		sql.open('./reputation.sqlite').then(() =>
-			sql.run('INSERT INTO reputations (guildid, awardeeid, goodrep, badrep, awarder, rawuser, type, reason, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [guildid, awardee, goodrep, badrep, awarder, client.users.get(awarder).username+'#'+client.users.get(awarder).discriminator, type, reason, Date.now()])
-				.then(() =>{
-					message.channel.sendMessage(`${client.users.get(awarder).username}#${client.users.get(awarder).discriminator} gave ${type}1 rep to ${client.users.get(awardee).username}#${client.users.get(awardee).discriminator} ${reason}`);
-				}).catch(error => message.channel.sendMessage(error.stack)));
+			sql.run('INSERT INTO reputations (guildid, awardeeid, goodrep, badrep, awarder, rawuser, type, reason, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [guildid, awardee, goodrep, badrep, awarder, client.users.get(awarder).username + '#' + client.users.get(awarder).discriminator, type, reason, Date.now()])
+			.then(() => {
+				message.channel.sendMessage(`${client.users.get(awarder).username}#${client.users.get(awarder).discriminator} gave ${type}1 rep to ${client.users.get(awardee).username}#${client.users.get(awardee).discriminator} ${reason}`);
+			}).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.then(() => {
+					winston.log('error', error.stack);
+				})
+			)
+		);
 	}
 
 	if (lmsg === ('rep info')) {
@@ -117,7 +121,12 @@ client.on('message', message => {
 			`• Dependencies : Winston ${wins}, SQLite ${sqli}`,
 			'\`\`\`'
 		];
-		message.channel.sendMessage(infomsg).then(response => response.delete(15000)).catch(console.log);
+		message.channel.sendMessage(infomsg).then(response => response.delete(15000))
+			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.then(() => {
+					winston.log('error', error.stack);
+				})
+			);
 	} else
 
 	if (lmsg === ('rep help')) {
@@ -136,7 +145,12 @@ client.on('message', message => {
 			'More soon',
 			'\`\`\`'
 		];
-		message.channel.sendMessage(infohelp).then(response => response.delete(15000)).catch(console.log);
+		message.channel.sendMessage(infohelp).then(response => response.delete(15000))
+			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.then(() => {
+					winston.log('error', error.stack);
+				})
+			);
 	}
 
 	if (lmsg.startsWith('++rep')) {
@@ -145,7 +159,12 @@ client.on('message', message => {
 		} else {
 			let reason = message.content.split(' ').slice(2).join(' ');
 			if (!reason) return message.channel.sendMessage('You must supply a reason to give reputation');
-			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '+', reason));
+			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '+', reason))
+				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.then(() => {
+						winston.log('error', error.stack);
+					})
+				);
 		}
 	} else
 
@@ -155,7 +174,12 @@ client.on('message', message => {
 		} else {
 			let reason = message.content.split(' ').slice(2).join(' ');
 			if (!reason) return message.channel.sendMessage('You must supply a reason to give reputation');
-			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '-', reason));
+			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '-', reason))
+				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.then(() => {
+						winston.log('error', error.stack);
+					})
+				);
 		}
 	} else
 
@@ -170,111 +194,198 @@ client.on('message', message => {
 					let badreps = rows.filter(rep => rep.guildid == message.guild.id).map(rep => rep.badrep).reduce((prev, cur) => {
 						return prev + cur;
 					});
-
 					let result = [];
 					result.push('\`\`\`');
-					result.push(`${client.users.get(mentioneduser.id).username}#${client.users.get(mentioneduser.id).discriminator} has a total reputation score of ${goodreps - badreps}; ( +${goodreps} / -${badreps} )`);
+					result.push(`${client.users.get(mentioneduser.id).username}#${client.users.get(mentioneduser.id).discriminator} has a total reputation score of ${goodreps - badreps} ( +${goodreps} / -${badreps} )`);
 					rows.filter(rep => rep.guildid == message.guild.id).map(rows => {
 						result.push(`(${rows.type}) ${rows.rawuser}: ${rows.reason}`);
 					});
 					result.push('\`\`\`');
-					message.channel.sendMessage(result);
+					message.channel.sendMessage(result)
+						.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+							.then(() => {
+								winston.log('error', error.stack);
+							})
+						);
 				} else {
-					message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**.`).then(response => {
-						response.delete(5000).catch(error => log('False no contents: ' + error.stack));
-					});
+					message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**.`)
+						.then(response => {
+							response.delete(5000)
+								.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+									.then(() => {
+										winston.log('error', error.stack);
+									})
+								);
+						});
 				}
-			}).catch(message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**`));
+			}).catch(error => message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**`))
+				.then(response => {
+					response.delete(5000)
+						.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+							.then(() => {
+								winston.log('error', error.stack);
+							})
+						);
+				});
 		} else {
 			sql.open('./reputation.sqlite').then(() => sql.get('SELECT * FROM reputations WHERE awardeeid = ?', message.author.id)).then(row => {
 				if (!row) {
 					message.channel.sendMessage(`Could not find any reputation for **${message.author.username}**.`).then(response => {
-						response.delete(5000).catch(error => log('False no contents: ' + error.stack));
+						response.delete(5000).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+							.then(() => {
+								winston.log('error', error.stack);
+							})
+						);
 					});
 				} else {
 					let message_content = row.rawuser;
 					console.log('Row Contents: ' + row.rawuser);
-					message.channel.sendMessage(message_content).catch(error => log('False row contents: ' + error.stack));
+					message.channel.sendMessage(message_content).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
 				}
-			}).catch(error => message.channel.sendMessage(error.stack));
-
+			}).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.then(() => {
+					winston.log('error', error.stack);
+				})
+			);
 		}
 	} else
 
-	if (lmsg === ('rep reboot')) {
+	if (lmsg === ('reboot reputar')) {
 		if (!message.member.hasPermission('ADMINISTRATOR') || !message.member.hasPermission('MANAGE_GUILD')) return;
 		const collector = message.channel.createCollector(m => m.author === message.author, {
 			time: 5000
 		});
-		message.channel.sendMessage('Are you sure?').then(response => response.delete(10500)).catch(console.log);
+		message.channel.sendMessage('Are you sure?').then(response => response.delete(10500))
+			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.then(() => {
+					winston.log('error', error.stack);
+				})
+			);
 		collector.on('message', m => {
 			if (m.content === 'yes' || m.content === 'y') collector.stop('success');
 			if (m.content !== 'yes' || m.content !== 'y') collector.stop('failed');
 		});
 		collector.on('end', (collection, reason) => {
-			if (reason === 'time') return message.channel.sendMessage('Reboot timed out.').then(response => response.delete(5000)).catch(console.log);
-			if (reason === 'failed') return message.channel.sendMessage('Reboot aborted.').then(response => response.delete(5000)).catch(console.log);
+			if (reason === 'time') return message.channel.sendMessage('Reboot timed out.').then(response => response.delete(5000))
+				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.then(() => {
+						winston.log('error', error.stack);
+					})
+				);
+			if (reason === 'failed') return message.channel.sendMessage('Reboot aborted.').then(response => response.delete(5000))
+				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.then(() => {
+						winston.log('error', error.stack);
+					})
+				);
 			if (reason === 'success') {
 				message.channel.sendMessage('Rebooting...').then(() => {
 					client.destroy().then(() => {
 						process.exit();
-					}).catch(console.log);
+					}).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
 				});
 			}
 		});
 	} else
 
 	if (lmsg.startsWith('leave reputar')) {
-		if (message.author.id !== settings.owner) return;
+		if (message.author.id !== '146048938242211840') return;
 		const collector = message.channel.createCollector(m => m.author === message.author, {
 			time: 5000
 		});
 		var gid = params.slice(1).toString();
 		if (gid && !isNaN(gid)) {
-			message.channel.sendMessage(`Are you sure you want to leave ${client.guilds.get(gid).name}?`).then(response => response.delete(10500)).catch(console.log);
+			message.channel.sendMessage(`Are you sure you want to leave ${client.guilds.get(gid).name}?`).then(response => response.delete(10500))
+				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.then(() => {
+						winston.log('error', error.stack);
+					})
+				);
 			collector.on('message', m => {
 				if (m.content === 'yes' || m.content === 'y') collector.stop('success');
 				if (m.content !== 'yes' || m.content !== 'y') collector.stop('failed');
 			});
 			collector.on('end', (collection, reason) => {
-				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000)).catch(console.log);
-				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000)).catch(console.log);
+				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000))
+					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
+				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000))
+					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
 				if (reason === 'success') {
 					message.channel.sendMessage(`Leaving ${client.guilds.get(gid).name}`).then(() => {
 						client.guilds.get(gid).leave();
-					}).then(response => response.delete(5000)).catch(console.log);
+					}).then(response => response.delete(5000))
+					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
 				}
-
 			});
-
 		} else
 
 		if (!gid) {
-			message.channel.sendMessage(`Are you sure you want to leave ${message.guild.name}?`).then(response => response.delete(10500)).catch(console.log);
+			message.channel.sendMessage(`Are you sure you want to leave ${message.guild.name}?`).then(response => response.delete(10500))
+				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.then(() => {
+						winston.log('error', error.stack);
+					})
+				);
 			collector.on('message', m => {
 				if (m.content === 'yes' || m.content === 'y') collector.stop('success');
 				if (m.content !== 'yes' || m.content !== 'y') collector.stop('failed');
 			});
 			collector.on('end', (collection, reason) => {
-				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000)).catch(console.log);
-				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000)).catch(console.log);
+				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000))
+					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
+				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000))
+					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.then(() => {
+							winston.log('error', error.stack);
+						})
+					);
 				if (reason === 'success') {
 					message.channel.sendMessage(`Leaving ${message.guild.name}`).then(() => {
 						message.guild.leave();
-					}).then(response => response.delete(5000)).catch(console.log);
+					}).then(response => response.delete(5000))
+						.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+							.then(() => {
+								winston.log('error', error.stack);
+							})
+						);
 				}
-
 			});
-
 		}
 	} else
 
 	if (lmsg === ('invite reputar')) {
 		let output = 'So, you want to invite me to your server do you?\nWell here\'s my link! knock yourself out!\nhttps://discordapp.com/oauth2/authorize?client_id=226743018789535754&scope=bot';
-		message.channel.sendMessage(output).then(response => response.delete(15000)).catch(console.log);
+		message.channel.sendMessage(output).then(response => response.delete(15000))
+			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.then(() => {
+					winston.log('error', error.stack);
+				})
+			);
 	}
-
-
 });
 
 // Catch discord.js errors
