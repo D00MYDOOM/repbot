@@ -2,14 +2,15 @@ const Discord = require('discord.js'),
 	client = new Discord.Client({
 		fetch_all_members: true
 	});
-
+const moment = require('moment');
+require('moment-duration-format');
 const settings = require('./settings.json');
 const pack = require('./package.json');
 const sql = require('sqlite');
 //const Time = require('./time.js');
 const winston = require('winston');
 winston.add(winston.transports.File, {
-	filename: 'logs/reputron.log'
+	filename: 'logs/reputator.log'
 });
 winston.remove(winston.transports.Console);
 const Stats = {
@@ -18,25 +19,6 @@ const Stats = {
 		Sent: 0
 	}
 };
-
-function GetUptime() {
-	let sec_num = parseInt(process.uptime(), 10);
-	let days = Math.floor(sec_num / 86400);
-	sec_num %= 86400;
-	let hours = Math.floor(sec_num / 3600);
-	let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
-	let seconds = sec_num - (hours * 3600) - (minutes * 60);
-	if (days < 10) days = '0' + days;
-	if (hours < 10) hours = '0' + hours;
-	if (minutes < 10) minutes = '0' + minutes;
-	if (seconds < 10) seconds = '0' + seconds;
-	let time = '';
-	if (days != '00') time += `${days} ${days == '01' ? 'day' : 'days'} `;
-	if (days != '00' || hours != '00') time += `${hours} ${hours == '01' ? 'hour' : 'hours'} `;
-	if (days != '00' || hours != '00' || minutes != '00') time += `${minutes} ${minutes == '01' ? 'minute' : 'minutes'} `;
-	if (days != '00' || hours != '00' || minutes != '00' || seconds != '00') time += `${seconds} ${seconds == '01' ? 'second' : 'seconds'} `;
-	return time;
-}
 
 let unit = ['', 'K', 'M', 'G', 'T', 'P'];
 
@@ -48,6 +30,12 @@ function bytesToSize(input, precision) {
 
 var log = (message) => {
 	client.channels.get('228865885660643328').sendMessage(message);
+};
+
+var errorlog = (message) => {
+	console.log(message);
+	winston.log('error', message);
+	client.channels.get('228866136215650304').sendMessage(message);
 };
 
 var date = new Date().toLocaleDateString();
@@ -63,6 +51,7 @@ client.on('ready', () => {
 		'\`\`\`'
 	];
 	log(bootup);
+
 });
 
 client.on('message', message => {
@@ -94,7 +83,7 @@ client.on('message', message => {
 
 	if (lmsg === ('rep info')) {
 		let MemoryUsing = bytesToSize(process.memoryUsage().rss, 3);
-		let Uptime = GetUptime();
+		let Uptime = moment.duration(client.uptime).format('d[ DAYS], h[ HOURS], m[ MINUTES, and ]s[ SECONDS]');
 		let djsv = pack.dependencies['discord.js'].split('^')[1];
 		let wins = pack.dependencies['winston'].split('^')[1];
 		let sqli = pack.dependencies['sqlite'].split('^')[1];
@@ -254,7 +243,7 @@ client.on('message', message => {
 		}
 	} else
 
-	if (lmsg === ('reboot reputar')) {
+	if (lmsg === ('reboot reputator')) {
 		if (!message.member.hasPermission('ADMINISTRATOR') || !message.member.hasPermission('MANAGE_GUILD')) return;
 		const collector = message.channel.createCollector(m => m.author === message.author, {
 			time: 5000
@@ -296,7 +285,7 @@ client.on('message', message => {
 		});
 	} else
 
-	if (lmsg.startsWith('leave reputar')) {
+	if (lmsg.startsWith('leave reputator')) {
 		if (message.author.id !== '146048938242211840') return;
 		const collector = message.channel.createCollector(m => m.author === message.author, {
 			time: 5000
@@ -377,7 +366,7 @@ client.on('message', message => {
 		}
 	} else
 
-	if (lmsg === ('invite reputar')) {
+	if (lmsg === ('invite reputator')) {
 		let output = 'So, you want to invite me to your server do you?\nWell here\'s my link! knock yourself out!\nhttps://discordapp.com/oauth2/authorize?client_id=226743018789535754&scope=bot';
 		message.channel.sendMessage(output).then(response => response.delete(15000))
 			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
