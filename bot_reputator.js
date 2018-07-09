@@ -29,13 +29,13 @@ function bytesToSize(input, precision) {
 }
 
 var log = (message) => {
-	client.channels.get('228865885660643328').sendMessage(message);
+	client.channels.get('459282412950781964').sendMessage(message);
 };
 
 var errorlog = (message) => {
 	console.log(message);
 	winston.log('error', message);
-	client.channels.get('228866136215650304').sendMessage(message);
+	client.channels.get('459282412950781964').sendMessage(message);
 };
 
 var date = new Date().toLocaleDateString();
@@ -73,7 +73,7 @@ client.on('message', message => {
 			sql.run('INSERT INTO reputations (guildid, awardeeid, goodrep, badrep, awarder, rawuser, type, reason, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [guildid, awardee, goodrep, badrep, awarder, client.users.get(awarder).username + '#' + client.users.get(awarder).discriminator, type, reason, Date.now()])
 			.then(() => {
 				message.channel.sendMessage(`${client.users.get(awarder).username}#${client.users.get(awarder).discriminator} gave ${type}1 rep to ${client.users.get(awardee).username}#${client.users.get(awardee).discriminator} ${reason}`);
-			}).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+			}).catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 				.then(() => {
 					winston.log('error', error.stack);
 				})
@@ -111,7 +111,7 @@ client.on('message', message => {
 			'\`\`\`'
 		];
 		message.channel.sendMessage(infomsg).then(response => response.delete(15000))
-			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+			.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 				.then(() => {
 					winston.log('error', error.stack);
 				})
@@ -135,7 +135,7 @@ client.on('message', message => {
 			'\`\`\`'
 		];
 		message.channel.sendMessage(infohelp).then(response => response.delete(15000))
-			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+			.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 				.then(() => {
 					winston.log('error', error.stack);
 				})
@@ -149,7 +149,7 @@ client.on('message', message => {
 			let reason = message.content.split(' ').slice(2).join(' ');
 			if (!reason) return message.channel.sendMessage('You must supply a reason to give reputation');
 			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '+', reason))
-				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 					.then(() => {
 						winston.log('error', error.stack);
 					})
@@ -164,7 +164,7 @@ client.on('message', message => {
 			let reason = message.content.split(' ').slice(2).join(' ');
 			if (!reason) return message.channel.sendMessage('You must supply a reason to give reputation');
 			message.channel.sendMessage(addRep(message.mentions.users.array()[0].id, message.guild.id, message.author.id, '-', reason))
-				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 					.then(() => {
 						winston.log('error', error.stack);
 					})
@@ -191,7 +191,7 @@ client.on('message', message => {
 					});
 					result.push('\`\`\`');
 					message.channel.sendMessage(result)
-						.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 							.then(() => {
 								winston.log('error', error.stack);
 							})
@@ -200,7 +200,7 @@ client.on('message', message => {
 					message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**.`)
 						.then(response => {
 							response.delete(5000)
-								.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+								.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 									.then(() => {
 										winston.log('error', error.stack);
 									})
@@ -210,7 +210,7 @@ client.on('message', message => {
 			}).catch(error => message.channel.sendMessage(`Could not find any reputation for **${mentioneduser.username}#${mentioneduser.discriminator}**`))
 				.then(response => {
 					response.delete(5000)
-						.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 							.then(() => {
 								winston.log('error', error.stack);
 							})
@@ -220,7 +220,7 @@ client.on('message', message => {
 			sql.open('./reputation.sqlite').then(() => sql.get('SELECT * FROM reputations WHERE awardeeid = ?', message.author.id)).then(row => {
 				if (!row) {
 					message.channel.sendMessage(`Could not find any reputation for **${message.author.username}**.`).then(response => {
-						response.delete(5000).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						response.delete(5000).catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 							.then(() => {
 								winston.log('error', error.stack);
 							})
@@ -229,13 +229,13 @@ client.on('message', message => {
 				} else {
 					let message_content = row.rawuser;
 					console.log('Row Contents: ' + row.rawuser);
-					message.channel.sendMessage(message_content).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					message.channel.sendMessage(message_content).catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
 					);
 				}
-			}).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+			}).catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 				.then(() => {
 					winston.log('error', error.stack);
 				})
@@ -249,7 +249,7 @@ client.on('message', message => {
 			time: 5000
 		});
 		message.channel.sendMessage('Are you sure?').then(response => response.delete(10500))
-			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+			.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 				.then(() => {
 					winston.log('error', error.stack);
 				})
@@ -260,13 +260,13 @@ client.on('message', message => {
 		});
 		collector.on('end', (collection, reason) => {
 			if (reason === 'time') return message.channel.sendMessage('Reboot timed out.').then(response => response.delete(5000))
-				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 					.then(() => {
 						winston.log('error', error.stack);
 					})
 				);
 			if (reason === 'failed') return message.channel.sendMessage('Reboot aborted.').then(response => response.delete(5000))
-				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 					.then(() => {
 						winston.log('error', error.stack);
 					})
@@ -275,7 +275,7 @@ client.on('message', message => {
 				message.channel.sendMessage('Rebooting...').then(() => {
 					client.destroy().then(() => {
 						process.exit();
-					}).catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					}).catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
@@ -286,14 +286,14 @@ client.on('message', message => {
 	} else
 
 	if (lmsg.startsWith('leave reputator')) {
-		if (message.author.id !== '146048938242211840') return;
+		if (message.author.id !== '128366769969692673') return;
 		const collector = message.channel.createCollector(m => m.author === message.author, {
 			time: 5000
 		});
 		var gid = params.slice(1).toString();
 		if (gid && !isNaN(gid)) {
 			message.channel.sendMessage(`Are you sure you want to leave ${client.guilds.get(gid).name}?`).then(response => response.delete(10500))
-				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 					.then(() => {
 						winston.log('error', error.stack);
 					})
@@ -304,13 +304,13 @@ client.on('message', message => {
 			});
 			collector.on('end', (collection, reason) => {
 				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000))
-					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
 					);
 				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000))
-					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
@@ -319,7 +319,7 @@ client.on('message', message => {
 					message.channel.sendMessage(`Leaving ${client.guilds.get(gid).name}`).then(() => {
 						client.guilds.get(gid).leave();
 					}).then(response => response.delete(5000))
-					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
@@ -330,7 +330,7 @@ client.on('message', message => {
 
 		if (!gid) {
 			message.channel.sendMessage(`Are you sure you want to leave ${message.guild.name}?`).then(response => response.delete(10500))
-				.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+				.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 					.then(() => {
 						winston.log('error', error.stack);
 					})
@@ -341,13 +341,13 @@ client.on('message', message => {
 			});
 			collector.on('end', (collection, reason) => {
 				if (reason === 'time') return message.channel.sendMessage('Leave timed out.').then(response => response.delete(5000))
-					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
 					);
 				if (reason === 'failed') return message.channel.sendMessage('Leave aborted.').then(response => response.delete(5000))
-					.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+					.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 						.then(() => {
 							winston.log('error', error.stack);
 						})
@@ -356,7 +356,7 @@ client.on('message', message => {
 					message.channel.sendMessage(`Leaving ${message.guild.name}`).then(() => {
 						message.guild.leave();
 					}).then(response => response.delete(5000))
-						.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+						.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 							.then(() => {
 								winston.log('error', error.stack);
 							})
@@ -369,7 +369,7 @@ client.on('message', message => {
 	if (lmsg === ('invite reputator')) {
 		let output = 'So, you want to invite me to your server do you?\nWell here\'s my link! knock yourself out!\nhttps://discordapp.com/oauth2/authorize?client_id=226743018789535754&scope=bot';
 		message.channel.sendMessage(output).then(response => response.delete(15000))
-			.catch(error => client.channel.get('228866136215650304').sendMessage(error.stack)
+			.catch(error => client.channel.get('459282412950781964').sendMessage(error.stack)
 				.then(() => {
 					winston.log('error', error.stack);
 				})

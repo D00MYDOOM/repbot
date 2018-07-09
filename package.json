@@ -1,20 +1,20 @@
 {
-  "name": "reputator",
+  "name": "repbot",
   "version": "3.4.0",
   "description": "A bot designed to give users reputation from other users based on good or bad behaviour.",
-  "main": "bot_reputator.js",
+  "main": "bot_repbot.js",
   "scripts": {
-    "start": "pm2 start bot_reputator.js"
+    "start": "pm2 start bot_repbot.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YorkAARGH/Reputator.git"
+    "url": "git+https://github.com/YorkAARGH/repbot.git"
   },
   "bugs": {
-    "url": "https://github.com/YorkAARGH/Reputator/issues"
+    "url": "https://github.com/YorkAARGH/repbot/issues"
   },
-  "homepage": "https://github.com/YorkAARGH/Reputator#readme",
-  "author": "York#9528, zajrik#2656",
+  "homepage": "https://github.com/YorkAARGH/repbot#readme",
+  "author": "DOOM",
   "license": "MIT",
   "dependencies": {
     "discord.js": "^9.2.0",
